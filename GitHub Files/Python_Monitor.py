@@ -5,8 +5,8 @@ import psutil
 import json
 import os
 
-CPP_APP = r"C:\Users\kikog\CLionProjects\Job_Work\cpp_hpp_PID\ProcessTreeApp.exe"   # Path to your compiled C++ app
-OUTPUT_FILE = r"C:\Users\kikog\Desktop\Python_Monitor_JFiles\process_data.json"  # Shared file for the popup
+CPP_APP = r""   # Path to your compiled C++ app
+OUTPUT_FILE = r""  # Shared file for the popup
 
 
 def run_cpp_and_get_output():
@@ -85,3 +85,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
