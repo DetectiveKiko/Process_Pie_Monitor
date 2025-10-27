@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import json
 import os
 
-DATA_FILE = r"C:\Users\kikog\Desktop\Python_Monitor_JFiles\process_data.json"
+DATA_FILE = r"" # Path to .json monitor files
 
 app = FastAPI()
 
@@ -26,3 +26,4 @@ def read_json_data():
 @app.get("/processes")
 def get_processes():
     return read_json_data()
+
