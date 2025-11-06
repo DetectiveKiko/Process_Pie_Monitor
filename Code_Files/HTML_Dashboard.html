@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Process Monitor Dashboard</title>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; text-align: center; background: #f7f9fc; }
+  #chart { width: 80%; margin: auto; height: 600px; }
+  #back-btn { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; display: none; }
+</style>
+</head>
+<body>
+
+<h2>🧩 Interactive Process Tree Dashboard</h2>
+<button id="back-btn">⬅️ Back</button>
+<div id="chart"></div>
+
+<script>
+const apiUrl = "http://127.0.0.1:8000/processes";
+let allProcesses = [];
+let currentParent = null;
+let historyStack = [];
+
+async function loadData() {
+    const res = await fetch(apiUrl);
+    allProcesses = await res.json();
+    showLevel(null); // show root level
+}
+
+function getChildrenOf(parentPid) {
+    // Children are those with indent greater than parent, but appear after it in list
+    const parentIndex = allProcesses.findIndex(p => p.pid === parentPid);
+    if (parentIndex === -1) return [];
+    const parentIndent = allProcesses[parentIndex].indent;
+    let children = [];
+    for (let i = parentIndex + 1; i < allProcesses.length; i++) {
+        const proc = allProcesses[i];
+        if (proc.indent <= parentIndent) break;
+        if (proc.indent === parentIndent + 4) { // direct child
+            children.push(proc);
+        }
+    }
+    return children;
+}
+
+function getRootProcesses() {
+    // Exclude PID 0 or any invalid/empty entries
+    return allProcesses.filter(p =>
+        (p.indent === 0 || p.indent === 4) &&
+        p.pid !== 0 &&
+        p.name.toLowerCase() !== "system"
+    );
+}
+
+function showLevel(parentPid) {
+    let processes;
+    if (parentPid === null) {
+        processes = getRootProcesses();
+        document.getElementById("back-btn").style.display = "none";
+    } else {
+        processes = getChildrenOf(parentPid);
+        document.getElementById("back-btn").style.display = "block";
+    }
+
+    if (processes.length === 0) {
+        alert("No subprocesses for this process.");
+        return;
+    }
+
+    const labels = processes.map(p => `${p.name} (PID: ${p.pid})`);
+    const values = processes.map(p => p.cpu + p.mem + 0.1); // small value to make visible even if 0
+    const pids = processes.map(p => p.pid);
+
+    const data = [{
+        type: "pie",
+        labels: labels,
+        values: values,
+        textinfo: "label+percent",
+        hoverinfo: "label+value",
+    }];
+
+    const layout = {
+        title: parentPid ? `Subprocesses of PID ${parentPid}` : "Top-Level Processes",
+        height: 600,
+    };
+
+    Plotly.newPlot("chart", data, layout);
+
+    const chart = document.getElementById("chart");
+    chart.on("plotly_click", function(eventData) {
+        const idx = eventData.points[0].pointIndex;
+        const clickedPid = pids[idx];
+        historyStack.push(parentPid);
+        showLevel(clickedPid);
+    });
+}
+
+document.getElementById("back-btn").addEventListener("click", () => {
+    const lastParent = historyStack.pop() || null;
+    showLevel(lastParent);
+});
+
+loadData();
+setInterval(loadData, 5000); // auto refresh every 5 sec
+</script>
+
+</body>
+</html>
